@@ -1,15 +1,32 @@
 package portbuster;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
     public static void main(String[] args) {
-        startServer("127.0.0.1");
+        startServer("play.daexsys.com");
     }
 
     public static void startServer(final String ip) {
+        JFrame jFrame = new JFrame("MoxC Client");
+        jFrame.setSize(new Dimension(300, 100));
+        jFrame.setVisible(true);
+
+        JButton jButton = new JButton("Close MoxC Client");
+        jButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+        jFrame.add(jButton);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
