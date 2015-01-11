@@ -1,4 +1,6 @@
-package portbuster;
+package com.daexsys.moxc.portbuster;
+
+import com.daexsys.moxc.MoxCGlobal;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,7 +16,64 @@ public class Client {
     }
 
     public static void startServer(final String ip) {
-        JFrame jFrame = new JFrame("MoxC Client");
+        final JFrame login = new JFrame("Login to MoxC with Daexsys account");
+        login.setVisible(true);
+        login.setSize(new Dimension(400, 200));
+        login.setLocationRelativeTo(null);
+        login.setContentPane(new JPanel());
+
+        login.getContentPane().setLayout(null);
+
+        final JLabel user = new JLabel("Username");
+        final JLabel pass = new JLabel("Password");
+
+        final JTextField usernameField = new JTextField();
+        usernameField.setToolTipText("username");
+
+        final JPasswordField passwordField = new JPasswordField();
+        passwordField.setToolTipText("password");
+
+        user.setBounds(30, 10, 300, 20);
+        pass.setBounds(30, 40, 300, 20);
+        usernameField.setBounds(30, 30, 300, 20);
+        passwordField.setBounds(30, 70, 300, 20);
+
+        final JButton submitButton = new JButton("Login");
+        submitButton.setBounds(125, 110, 150, 30);
+
+        login.add(usernameField);
+        login.add(passwordField);
+        login.add(submitButton);
+
+        submitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                login.setVisible(false);
+                proceed(ip, usernameField.getText(), passwordField.getText());
+            }
+        });
+    }
+
+    public static void proceed(final String ip, String username, String password) {
+        int port = 25566;
+
+        try {
+            Socket socket = new Socket("www.daexsys.com", 4001);
+            PrintStream printStream = new PrintStream(socket.getOutputStream());
+            DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+
+            printStream.println("4 " + username + " " + password.hashCode());
+            String response = dataInputStream.readLine();
+
+            String[] spl = response.split("\\s+");
+            port = Integer.parseInt(spl[4]);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        int claimedPort = port;
+
+        JFrame jFrame = new JFrame("MoxC Client - play.daexsys.com:" + claimedPort);
         jFrame.setSize(new Dimension(300, 100));
         jFrame.setVisible(true);
 
@@ -47,6 +106,7 @@ public class Client {
         try {
             // Create socket listener
             final Socket socket = new Socket(ip, 25564);
+            new PrintStream(socket.getOutputStream()).println(claimedPort + "");
 
             new Thread(new Runnable() {
                 @Override
@@ -60,7 +120,7 @@ public class Client {
 
                             // Per client socket
                             final Socket local = new Socket(ip, 25563);
-                            final Socket remote = new Socket("127.0.0.1", 25565);
+                            final Socket remote = new Socket("127.0.0.1", MoxCGlobal.GAME_PORT);
 
                             new Thread(new Runnable() {
                                 @Override
