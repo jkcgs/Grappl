@@ -1,6 +1,6 @@
 package com.daexsys.moxc.portbuster;
 
-import com.daexsys.moxc.MoxCGlobal;
+import com.daexsys.moxc.GrapplGlobal;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,81 +11,48 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
+    public static JFrame jFrame;
+    public static JLabel jLabel3;
+
     public static void main(String[] args) {
-        startServer("www.daexsys.com");
-    }
-
-    public static void startServer(final String ip) {
-//        final JFrame login = new JFrame("Login to MoxC with Daexsys account");
-//        login.setVisible(true);
-//        login.setSize(new Dimension(400, 200));
-//        login.setLocationRelativeTo(null);
-//        login.setContentPane(new JPanel());
-//
-//        login.getContentPane().setLayout(null);
-//
-//        final JLabel user = new JLabel("Username");
-//        final JLabel pass = new JLabel("Password");
-//
-//        final JTextField usernameField = new JTextField();
-//        usernameField.setToolTipText("username");
-//
-//        final JPasswordField passwordField = new JPasswordField();
-//        passwordField.setToolTipText("password");
-//
-//        user.setBounds(30, 10, 300, 20);
-//        pass.setBounds(30, 40, 300, 20);
-//        usernameField.setBounds(30, 30, 300, 20);
-//        passwordField.setBounds(30, 70, 300, 20);
-//
-//        final JButton submitButton = new JButton("Login");
-//        submitButton.setBounds(125, 110, 150, 30);
-//
-//        login.add(usernameField);
-//        login.add(passwordField);
-//        login.add(submitButton);
-//
-//        submitButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                login.setVisible(false);
-//                ;
-//            }
-//        });
-        proceed(ip, "", "");
-    }
-
-    public static void proceed(final String ip, String username, String password) {
+        boolean displayGui = true;
         int port = 25566;
 
-//        try {
-//            Socket socket = new Socket("www.daexsys.com", 4001);
-//            PrintStream printStream = new PrintStream(socket.getOutputStream());
-//            DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
-//
-//            printStream.println("4 " + username + " " + password.hashCode());
-//            String response = dataInputStream.readLine();
-//
-//            String[] spl = response.split("\\s+");
-//            port = Integer.parseInt(spl[4]);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-        int claimedPort = port;
-
-        JFrame jFrame = new JFrame("MoxC Client - www.daexsys.com:" + claimedPort);
-        jFrame.setSize(new Dimension(300, 100));
-        jFrame.setVisible(true);
-
-        JButton jButton = new JButton("Close MoxC Client");
-        jButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
+        if(args.length > 1) {
+            if (args[0].equalsIgnoreCase("nogui")) {
+                displayGui = false;
             }
-        });
-        jFrame.add(jButton);
+
+            port = Integer.parseInt(args[1]);
+        }
+
+        proceed(GrapplGlobal.DOMAIN, port, displayGui);
+    }
+
+    public static void proceed(final String ip, int port, final boolean displayGui) {
+        if(displayGui) {
+            jFrame = new JFrame(GrapplGlobal.APP_NAME + " Client");
+            jFrame.setSize(new Dimension(300, 220));
+            jFrame.setVisible(true);
+            jFrame.setLayout(null);
+
+            JButton jButton = new JButton("Close " + GrapplGlobal.APP_NAME + " Client");
+            jButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    System.exit(0);
+                }
+            });
+            jFrame.add(jButton);
+            jButton.setBounds(0, 75, 280, 100);
+        }
+
+        if(displayGui) {
+            String ports = JOptionPane.showInputDialog("What port does your server run on?");
+            port = Integer.parseInt(ports);
+        }
+
+        final int SERVICE_PORT = port;
 
         new Thread(new Runnable() {
             @Override
@@ -106,78 +73,115 @@ public class Client {
 
         try {
             // Create socket listener
-            final Socket socket = new Socket(ip, 25564);
-            new PrintStream(socket.getOutputStream()).println(claimedPort + "");
+            final Socket messageSocket = new Socket(ip, GrapplGlobal.SPAWN_PORT);
+            new PrintStream(messageSocket.getOutputStream()).println(SERVICE_PORT + "");
+
+            final DataInputStream messageInputStream = new DataInputStream(messageSocket.getInputStream());
+            String s = messageInputStream.readLine();
+            System.out.println(GrapplGlobal.DOMAIN + ":" + s);
+
+            if(displayGui) {
+                final JLabel jLabel = new JLabel("GLOBAL ADDRESS: " + GrapplGlobal.DOMAIN + ":" + s);
+                jLabel.setBounds(5, 5, 450, 20);
+                jFrame.add(jLabel);
+
+                JLabel jLabel2 = new JLabel("SERVER ON LOCAL PORT: " + SERVICE_PORT);
+                jLabel2.setBounds(5, 25, 450, 20);
+                jFrame.add(jLabel2);
+                jFrame.repaint();
+            }
 
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+                        int connectedClients = 0;
+
+                        if(displayGui) {
+                            jLabel3 = new JLabel("CONNECTED CLIENTS: " + connectedClients);
+                            jLabel3.setBounds(5, 45, 450, 20);
+                            jFrame.add(jLabel3);
+                            jFrame.repaint();
+                        }
 
                         while(true) {
-                            String s = dataInputStream.readLine();
-//                            System.out.println("Client connected: www.daexsys.com:" + s);
+                            // This goes off when a new client attempts to connect.
+                            String s = messageInputStream.readLine();
+                            System.out.println("A remote client has connected.");
 
-                            // Per client socket
-                            final Socket local = new Socket(ip, 25563);
-                            final Socket remote = new Socket("127.0.0.1", MoxCGlobal.GAME_PORT);
+                            // Increment the connected player counter.
+                            connectedClients++;
+                            if(displayGui) {
+                                jLabel3.setText("CONNECTED CLIENTS: " + connectedClients);
+                                jFrame.repaint();
+                            }
 
-                            new Thread(new Runnable() {
+                            // This socket connects to the local server.
+                            final Socket toLocal = new Socket("127.0.0.1", SERVICE_PORT);
+                            // This socket connects to the grappl server, to transfer data from the computer to it.
+                            final Socket toRemote = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.INNER_TRANSIT);
+
+                            // Start the local -> remote thread
+                            final Thread localToRemote = new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-//                                    while(true) {
-                                        byte[] buffer = new byte[4096];
-                                        int size = 0;
+                                    byte[] buffer = new byte[4096];
+                                    int size;
 
-                                        try {
-                                            while ((size = local.getInputStream().read(buffer)) != -1) {
-                                                remote.getOutputStream().write(buffer, 0, size);
-                                            }
-                                        } catch (IOException e) {
-                                            try {
-                                                Thread.sleep(100000000);
-                                            } catch (InterruptedException e1) {
-                                                e1.printStackTrace();
-                                            }
-                                            try {
-                                                local.close();
-                                            } catch (IOException e1) {
-                                                e1.printStackTrace();
-                                            }
-                                            e.printStackTrace();
+                                    try {
+                                        while ((size = toLocal.getInputStream().read(buffer)) != -1) {
+                                            toRemote.getOutputStream().write(buffer, 0, size);
                                         }
-//                                    }
-                                }
-                            }).start();
-
-                            new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-//                                    while(true) {
-                                        byte[] buffer = new byte[4096];
-                                        int size = 0;
-
+                                    } catch (IOException e) {
                                         try {
-                                            while ((size = remote.getInputStream().read(buffer)) != -1) {
-                                                local.getOutputStream().write(buffer, 0, size);
-                                            }
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                            try {
-                                                Thread.sleep(100000000);
-                                            } catch (InterruptedException e1) {
-                                                e1.printStackTrace();
-                                            }
-                                            try {
-                                                remote.close();
-                                            } catch (IOException e1) {
-                                                e1.printStackTrace();
-                                            }
-//                                        }
+                                            toLocal.close();
+                                            toRemote.close();
+                                        } catch (IOException e1) {
+//                                            e1.printStackTrace();
+                                        }
+//                                        e.printStackTrace();
+                                    }
+
+                                    try {
+                                        toLocal.close();
+                                        toRemote.close();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
                                     }
                                 }
-                            }).start();
+                            });
+                            localToRemote.start();
+
+//                            Start the remote -> local thread
+                            final Thread remoteToLocal = new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    byte[] buffer = new byte[4096];
+                                    int size;
+
+                                    try {
+                                        while ((size = toRemote.getInputStream().read(buffer)) != -1) {
+                                            toLocal.getOutputStream().write(buffer, 0, size);
+                                        }
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                        try {
+                                            toLocal.close();
+                                            toRemote.close();
+                                        } catch (IOException e1) {
+//                                            e1.printStackTrace();
+                                        }
+                                    }
+
+                                    try {
+                                        toLocal.close();
+                                        toRemote.close();
+                                    } catch (IOException e) {
+//                                        e.printStackTrace();
+                                    }
+                                }
+                            });
+                            remoteToLocal.start();
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -187,5 +191,9 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void updateConnections() {
+
     }
 }

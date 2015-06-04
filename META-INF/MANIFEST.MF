@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: com.daexsys.moxc.portbuster.Client
+Main-Class: com.daexsys.moxc.web.GrapplServer
 
