@@ -1,6 +1,5 @@
-package com.daexsys.moxc.web;
+package com.daexsys.grappl.web;
 
-import com.sun.deploy.net.HttpRequest;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
