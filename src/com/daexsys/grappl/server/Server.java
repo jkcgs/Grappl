@@ -27,13 +27,17 @@ public class Server {
         startServer();
     }
 
-    public static int getPort(User user) {
-        int choice = new Random().nextInt(40000) + 10000;
+    public static int port = 40000;
 
-        if (!portsTaken.contains(choice)) {
-            portsTaken.add(choice);
-            return choice;
-        } else return getPort(user);
+    public static int getPort(User user) {
+        port += 2;
+        return port;
+//        int choice = new Random().nextInt(40000) + 10000;
+//
+//        if (!portsTaken.contains(choice)) {
+//            portsTaken.add(choice);
+//            return choice;
+//        } else return getPort(user);
     }
 
     static {

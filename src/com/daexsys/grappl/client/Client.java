@@ -94,7 +94,7 @@ public class Client {
             final Socket messageSocket = new Socket(ip, GrapplGlobal.MESSAGE_PORT);
 
             final DataInputStream messageInputStream = new DataInputStream(messageSocket.getInputStream());
-            String s = messageInputStream.readLine();
+            final String s = messageInputStream.readLine();
             System.out.println(GrapplGlobal.DOMAIN + ":" + s);
 
             if(displayGui) {
@@ -177,7 +177,7 @@ public class Client {
 
                         while(true) {
                             // This goes off when a new client attempts to connect.
-                            String s = messageInputStream.readLine();
+                            String a = messageInputStream.readLine();
                             System.out.println("A remote client has connected.");
 
                             // Increment the connected player counter.
@@ -186,7 +186,7 @@ public class Client {
                             // This socket connects to the local server.
                             final Socket toLocal = new Socket("127.0.0.1", SERVICE_PORT);
                             // This socket connects to the grappl server, to transfer data from the computer to it.
-                            final Socket toRemote = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.INNER_TRANSIT);
+                            final Socket toRemote = new Socket(GrapplGlobal.DOMAIN, Integer.parseInt(s) + 1);
 
                             // Start the local -> remote thread
                             final Thread localToRemote = new Thread(new Runnable() {

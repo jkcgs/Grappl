@@ -38,6 +38,12 @@ public class Host {
     // The user account associated with this host. Currently unused.
     private User user;
 
+    // The time the host opened
+    private long timeOpened;
+
+    // The traffic server
+    private ServerSocket trafficSocket;
+
     /**
      * Construct a host object.
      * @param socket the message-socket associated with this host
@@ -47,6 +53,8 @@ public class Host {
         this.messageSocket = socket;
         this.address = socket.getInetAddress().toString();
         this.user = user;
+
+        timeOpened = System.currentTimeMillis();
 
         // Display debug message for VPS-user to see.
         log("HOST connected " + socket.getInetAddress());
@@ -65,6 +73,9 @@ public class Host {
         try {
             final Host thisHost = this;
             portNumber = Server.getPort(getUser());
+
+            final int trafficPortNumber = portNumber + 1;
+            trafficSocket = new ServerSocket(trafficPortNumber);
 
             // Tell the host what port they're running on.
             final PrintStream printStream = new PrintStream(messageSocket.getOutputStream());
@@ -164,7 +175,7 @@ public class Host {
             public void run() {
                 try {
                     // Get traffic socket.
-                    final Socket remote = Server.trafficServer.accept();
+                    final Socket remote = trafficSocket.accept();
 
                     log(getPortNumber() + ": EX-CLIENT:(" + local.getInetAddress() + ") has connected to HOST:(" +
                             messageSocket.getInetAddress() + ")");
@@ -248,6 +259,10 @@ public class Host {
                 }
             }
         }).start();
+    }
+
+    public long getTimeOpened() {
+        return timeOpened;
     }
 
     public int getPortNumber() {
