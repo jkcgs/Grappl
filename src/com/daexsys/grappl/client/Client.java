@@ -17,6 +17,10 @@ public class Client {
     public static int sent = 0;
     public static int recv = 0;
 
+    public static String username = "Anonymous";
+    public static boolean isAlphaTester = false;
+    public static boolean isLoggedIn = false;
+
     public static int connectedClients = 0;
 
     public static void main(String[] args) {
@@ -68,28 +72,121 @@ public class Client {
         if(displayGui) {
             String ports = JOptionPane.showInputDialog("What port does your server run on?");
             port = Integer.parseInt(ports);
+            run(true, ip, port);
         }
 
         final int SERVICE_PORT = port;
+        final String IP = ip;
 
         new Thread(new Runnable() {
             @Override
             public void run() {
+                DataInputStream dataInputStream = null;
+                DataOutputStream dataOutputStream = null;
+
+                try {
+                    Socket socket = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.AUTHENTICATION);
+                    dataInputStream = new DataInputStream(socket.getInputStream());
+                    dataOutputStream = new DataOutputStream(socket.getOutputStream());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                System.out.println("Grappl command line");
+                System.out.println("--------------");
+                System.out.println("");
+
                 Scanner scanner = new Scanner(System.in);
 
                 while(true) {
-                    String line = scanner.nextLine();
+                    try {
+                        System.out.print("> ");
+                        String line = scanner.nextLine();
 
-                    String[] spl = line.split("\\s+");
+                        String[] spl = line.split("\\s+");
 
-                    if(line.equalsIgnoreCase("quit")) {
-                        System.exit(0);
+                        if (spl[0].equalsIgnoreCase("ipban")) {
+                            if(isLoggedIn) {
+                                String ip = spl[1];
+
+                                dataOutputStream.writeByte(5);
+                                PrintStream printStream = new PrintStream(dataOutputStream);
+                                printStream.println(ip);
+
+                                System.out.println("Banned ip: " + ip);
+                            } else {
+                                System.out.println("You must be logged in to ban IPs.");
+                            }
+                        }
+
+                        else if (spl[0].equalsIgnoreCase("login")) {
+                            String username = spl[1];
+                            String password = spl[2];
+
+                            dataOutputStream.writeByte(0);
+
+                            PrintStream printStream = new PrintStream(dataOutputStream);
+                            printStream.println(username);
+                            printStream.println(password);
+
+                            boolean success = dataInputStream.readBoolean();
+                            boolean alpha = dataInputStream.readBoolean();
+                            int port = dataInputStream.readInt();
+                            isAlphaTester = alpha;
+                            isLoggedIn = success;
+
+                            if(success) {
+                                System.out.println("Logged in as " + username);
+                                System.out.println("Alpha tester: " + alpha);
+                                System.out.println("Static port: " + port);
+                                Client.username = username;
+                            } else {
+                                System.out.println("Login failed!");
+                            }
+                        }
+
+                        else if(spl[0].equalsIgnoreCase("whoami")) {
+                            if(isLoggedIn) {
+                                System.out.println(username);
+                            } else {
+                                System.out.println("You aren't logged in, so you are anonymous.");
+                            }
+                        }
+
+                        else if(spl[0].equalsIgnoreCase("setport")) {
+                            if(isLoggedIn) {
+                                if (isAlphaTester) {
+                                    dataOutputStream.writeByte(2);
+                                    dataOutputStream.writeInt(Integer.parseInt(spl[1]));
+                                    System.out.println("Your port was set to: " + Integer.parseInt(spl[1]));
+                                } else {
+                                    System.out.println("You are not an alpha tester, so you can't set static ports.");
+                                }
+                            } else {
+                                System.out.println("You are not logged in.");
+                            }
+                        }
+
+                        else if (spl[0].equalsIgnoreCase("init")) {
+                            System.out.println("Starting...");
+                            Client.run(displayGui, IP, SERVICE_PORT);
+                        }
+
+                        else if (line.equalsIgnoreCase("quit")) {
+                            System.exit(0);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
             }
         }).start();
+    }
 
-        try {
+    public static void run(final boolean displayGui, String ip, int port) {
+            final int SERVICE_PORT = port;
+
+            try {
             // Create socket listener
             final Socket messageSocket = new Socket(ip, GrapplGlobal.MESSAGE_PORT);
 
@@ -133,7 +230,6 @@ public class Client {
                     }
                 }).start();
             }
-
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -207,7 +303,7 @@ public class Client {
                                         } catch (IOException e1) {
                                             e1.printStackTrace();
                                         }
-//                                        e.printStackTrace();
+    //                                        e.printStackTrace();
                                     }
 
                                     try {
@@ -220,7 +316,7 @@ public class Client {
                             });
                             localToRemote.start();
 
-//                            Start the remote -> local thread
+    //                            Start the remote -> local thread
                             final Thread remoteToLocal = new Thread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -238,7 +334,7 @@ public class Client {
                                             toLocal.close();
                                             toRemote.close();
                                         } catch (IOException e1) {
-//                                            e1.printStackTrace();
+    //                                            e1.printStackTrace();
                                         }
                                     }
 

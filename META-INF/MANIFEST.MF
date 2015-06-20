@@ -1,3 +1,4 @@
 Manifest-Version: 1.0
-Main-Class: com.daexsys.grappl.client.Client
+Class-Path: gson-2.2.4.jar
+Main-Class: com.daexsys.grappl.server.Server
 
