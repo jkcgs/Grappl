@@ -2,12 +2,10 @@ package com.daexsys.grappl.client;
 
 import com.daexsys.grappl.GrapplGlobal;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.*;
-import java.net.ConnectException;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -21,9 +19,9 @@ public class Client {
     public static boolean isLoggedIn = false;
 
     public static int connectedClients = 0;
+    public static boolean displayGui = true;
 
     public static void main(String[] args) {
-        boolean displayGui = true;
         int port = 25566;
 
         if(args.length > 1) {
@@ -63,8 +61,7 @@ public class Client {
                 }
 
                 System.out.println("Grappl command line");
-                System.out.println("--------------");
-                System.out.println("");
+                System.out.println("--------------\n\n");
 
                 Scanner scanner = new Scanner(System.in);
 
@@ -74,8 +71,9 @@ public class Client {
                         String line = scanner.nextLine();
 
                         String[] spl = line.split("\\s+");
+                        String command = spl[0].toLowerCase();
 
-                        if (spl[0].equalsIgnoreCase("ipban")) {
+                        if (command.equals("ipban")) {
                             if(isLoggedIn) {
                                 String ip = spl[1];
 
@@ -89,7 +87,7 @@ public class Client {
                             }
                         }
 
-                        else if (spl[0].equalsIgnoreCase("login")) {
+                        else if (command.equals("login")) {
                             String username = spl[1];
                             String password = spl[2];
 
@@ -99,15 +97,13 @@ public class Client {
                             printStream.println(username);
                             printStream.println(password);
 
-                            boolean success = dataInputStream.readBoolean();
-                            boolean alpha = dataInputStream.readBoolean();
+                            isLoggedIn = dataInputStream.readBoolean();
+                            isAlphaTester = dataInputStream.readBoolean();
                             int port = dataInputStream.readInt();
-                            isAlphaTester = alpha;
-                            isLoggedIn = success;
 
-                            if(success) {
+                            if(isLoggedIn) {
                                 System.out.println("Logged in as " + username);
-                                System.out.println("Alpha tester: " + alpha);
+                                System.out.println("Alpha tester: " + isAlphaTester);
                                 System.out.println("Static port: " + port);
                                 Client.username = username;
                             } else {
@@ -115,7 +111,7 @@ public class Client {
                             }
                         }
 
-                        else if(spl[0].equalsIgnoreCase("whoami")) {
+                        else if(command.equals("whoami")) {
                             if(isLoggedIn) {
                                 System.out.println(username);
                             } else {
@@ -123,7 +119,7 @@ public class Client {
                             }
                         }
 
-                        else if(spl[0].equalsIgnoreCase("setport")) {
+                        else if(command.equals("setport")) {
                             if(isLoggedIn) {
                                 if (isAlphaTester) {
                                     dataOutputStream.writeByte(2);
@@ -137,7 +133,7 @@ public class Client {
                             }
                         }
 
-                        else if (spl[0].equalsIgnoreCase("init")) {
+                        else if (command.equals("init")) {
                             System.out.println("Starting...");
                             Client.run(displayGui, IP, SERVICE_PORT);
                         }
