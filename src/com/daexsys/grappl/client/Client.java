@@ -2,49 +2,53 @@ package com.daexsys.grappl.client;
 
 import com.daexsys.grappl.GrapplGlobal;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
-    public static ClientGui gui;
-    public static int sent = 0;
-    public static int recv = 0;
+    private ClientGui gui;
+    private int sent = 0;
+    private int recv = 0;
 
-    public static String username = "Anonymous";
-    public static boolean isAlphaTester = false;
-    public static boolean isLoggedIn = false;
+    private String username = "Anonymous";
+    private boolean isAlphaTester = false;
+    private boolean isLoggedIn = false;
 
-    public static int connectedClients = 0;
-    public static boolean displayGui = true;
+    private int connectedClients = 0;
 
     public static void main(String[] args) {
         int port = 25566;
+        boolean displayGui = true;
 
         if(args.length > 1) {
             if (args[0].equalsIgnoreCase("nogui")) {
                 displayGui = false;
+                try {
+                    port = Integer.parseInt(args[1]);
+                    if(port < 1 || port > 65535) {
+                        throw new NumberFormatException();
+                    }
+                } catch(NumberFormatException e) {
+                    System.out.println("Wrong port number! You must enter a valid server port number between 1 and 65535");
+                    System.out.println("Example: java -jar GrappleClient.jar nogui 7777");
+                    System.exit(0);
+                }
             }
-
-            port = Integer.parseInt(args[1]);
         }
 
-        proceed(GrapplGlobal.DOMAIN, port, displayGui);
+        (new Client()).proceed(GrapplGlobal.DOMAIN, port, displayGui);
     }
 
-    public static void proceed(final String ip, int port, final boolean displayGui) {
+    public void proceed(final String ip, int port, boolean displayGui) {
         if(displayGui) {
             gui = new ClientGui();
 
             port = gui.askPort();
-            run(true, ip, port);
+            init(ip, port);
         }
 
         final int SERVICE_PORT = port;
-        final String IP = ip;
 
         new Thread(new Runnable() {
             @Override
@@ -105,7 +109,6 @@ public class Client {
                                 System.out.println("Logged in as " + username);
                                 System.out.println("Alpha tester: " + isAlphaTester);
                                 System.out.println("Static port: " + port);
-                                Client.username = username;
                             } else {
                                 System.out.println("Login failed!");
                             }
@@ -135,7 +138,7 @@ public class Client {
 
                         else if (command.equals("init")) {
                             System.out.println("Starting...");
-                            Client.run(displayGui, IP, SERVICE_PORT);
+                            init(ip, SERVICE_PORT);
                         }
 
                         else if (line.equalsIgnoreCase("quit")) {
@@ -149,18 +152,18 @@ public class Client {
         }).start();
     }
 
-    public static void run(final boolean displayGui, String ip, int port) {
+    public void init(String ip, int port) {
             final int SERVICE_PORT = port;
 
         try {
             // Create socket listener
             final Socket messageSocket = new Socket(ip, GrapplGlobal.MESSAGE_PORT);
 
-            final DataInputStream messageInputStream = new DataInputStream(messageSocket.getInputStream());
+            final BufferedReader messageInputStream = new BufferedReader(new InputStreamReader(messageSocket.getInputStream()));
             final String s = messageInputStream.readLine();
             System.out.println(GrapplGlobal.DOMAIN + ":" + s);
 
-            if(displayGui) {
+            if(gui != null) {
                 gui.labelAddress.setText("Global Address: " + GrapplGlobal.DOMAIN + ":" + s);
                 gui.labelPort.setText("Server on local port: " + SERVICE_PORT);
                 gui.labelStatus.setText("Waiting for data");
@@ -218,7 +221,7 @@ public class Client {
                 @Override
                 public void run() {
                     try {
-                        if(displayGui) {
+                        if(gui != null) {
                             gui.labelClients.setText("Connected clients: " + connectedClients);
                             gui.repaint();
                         }
