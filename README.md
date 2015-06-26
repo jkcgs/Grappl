@@ -4,4 +4,4 @@ It works by transferring data through a proxy on grappl.io.
 
 It's still in an alpha state. This repository contains all the newest client code, and some of the server and web code.
 
-This project uses the library [Gson](https://github.com/google/gson). Remember to set it up on your IDE.
+This project uses the [Gson](https://github.com/google/gson) library. Remember to set it up on your IDE.
