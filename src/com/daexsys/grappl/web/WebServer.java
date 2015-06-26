@@ -17,7 +17,7 @@ public class WebServer {
             httpServer = HttpServer.create(new InetSocketAddress(8080), 0);
             httpServer.createContext("/", new GrapplHomepage());
             httpServer.createContext("/donate", new GrapplDonate());
-            httpServer.createContext("/stats", new GrapplStats());
+//            httpServer.createContext("/stats", new GrapplStats());
             httpServer.setExecutor(null);
             httpServer.start();
         } catch (IOException e) {
