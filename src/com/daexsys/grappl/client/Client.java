@@ -7,13 +7,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
-    public static JFrame jFrame;
-    public static JLabel jLabel3;
-    public static volatile JLabel jLabel4;
+    public static ClientGui gui;
     public static int sent = 0;
     public static int recv = 0;
 
@@ -40,38 +39,9 @@ public class Client {
 
     public static void proceed(final String ip, int port, final boolean displayGui) {
         if(displayGui) {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (UnsupportedLookAndFeelException e) {
-                e.printStackTrace();
-            }
+            gui = new ClientGui();
 
-            jFrame = new JFrame(GrapplGlobal.APP_NAME + " Client");
-            jFrame.setSize(new Dimension(300, 240));
-            jFrame.setVisible(true);
-            jFrame.setLayout(null);
-            jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-            JButton jButton = new JButton("Close " + GrapplGlobal.APP_NAME + " Client");
-            jButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    System.exit(0);
-                }
-            });
-            jFrame.add(jButton);
-            jButton.setBounds(0, 95, 280, 100);
-        }
-
-        if(displayGui) {
-            String ports = JOptionPane.showInputDialog("What port does your server run on?");
-            port = Integer.parseInt(ports);
+            port = gui.askPort();
             run(true, ip, port);
         }
 
@@ -186,7 +156,7 @@ public class Client {
     public static void run(final boolean displayGui, String ip, int port) {
             final int SERVICE_PORT = port;
 
-            try {
+        try {
             // Create socket listener
             final Socket messageSocket = new Socket(ip, GrapplGlobal.MESSAGE_PORT);
 
@@ -195,31 +165,19 @@ public class Client {
             System.out.println(GrapplGlobal.DOMAIN + ":" + s);
 
             if(displayGui) {
-                final JLabel jLabel = new JLabel("Global Address: " + GrapplGlobal.DOMAIN + ":" + s);
-                jLabel.setBounds(5, 5, 450, 20);
-                jFrame.add(jLabel);
+                gui.labelAddress.setText("Global Address: " + GrapplGlobal.DOMAIN + ":" + s);
+                gui.labelPort.setText("Server on local port: " + SERVICE_PORT);
+                gui.labelStatus.setText("Waiting for data");
 
-                JLabel jLabel2 = new JLabel("Server on local port: " + SERVICE_PORT);
-                jLabel2.setBounds(5, 25, 450, 20);
-                jFrame.add(jLabel2);
+                gui.repaint();
 
-                jLabel4 = new JLabel("Waiting for data");
-                jLabel4.setBounds(5, 65, 450, 20);
-                jFrame.add(jLabel4);
-
-                jFrame.repaint();
-            }
-
-            if(displayGui) {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         while (true) {
-                            if (jLabel4 != null && jLabel3 != null) {
-                                jLabel3.setText("Connected clients: " + connectedClients);
-                                jLabel4.setText("Sent Data: " + (sent*4) + "KB - Recv Data: " + (recv*4)+"KB");
-                                jFrame.repaint();
-                            }
+                            gui.labelClients.setText("Connected clients: " + connectedClients);
+                            gui.labelStatus.setText("Sent Data: " + (sent*4) + "KB - Recv Data: " + (recv*4)+"KB");
+                            gui.repaint();
 
                             try {
                                 Thread.sleep(1000);
@@ -230,6 +188,7 @@ public class Client {
                     }
                 }).start();
             }
+
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -263,12 +222,9 @@ public class Client {
                 @Override
                 public void run() {
                     try {
-
                         if(displayGui) {
-                            jLabel3 = new JLabel("Connected clients: " + connectedClients);
-                            jLabel3.setBounds(5, 45, 450, 20);
-                            jFrame.add(jLabel3);
-                            jFrame.repaint();
+                            gui.labelClients.setText("Connected clients: " + connectedClients);
+                            gui.repaint();
                         }
 
                         while(true) {
@@ -303,7 +259,6 @@ public class Client {
                                         } catch (IOException e1) {
                                             e1.printStackTrace();
                                         }
-    //                                        e.printStackTrace();
                                     }
 
                                     try {
@@ -316,7 +271,7 @@ public class Client {
                             });
                             localToRemote.start();
 
-    //                            Start the remote -> local thread
+                            // Start the remote -> local thread
                             final Thread remoteToLocal = new Thread(new Runnable() {
                                 @Override
                                 public void run() {
