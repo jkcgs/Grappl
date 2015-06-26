@@ -2,8 +2,7 @@ package com.daexsys.grappl;
 
 public class GrapplGlobal {
     public static String APP_NAME = "Grappl";
-    public static String DOMAIN = "127.0.0.1";
-//    public static String DOMAIN = "grappl.io";
+    public static String DOMAIN = "127.0.0.1"; // "grappl.io";
 
     // Original ports
     public static int INNER_TRANSIT = 2178;

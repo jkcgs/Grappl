@@ -58,24 +58,28 @@ public class ClientGui extends JFrame {
     }
 
     public int askPort() {
-        int port = 0;
-        boolean ok = false;
-        while(!ok) {
+        int port;
+
+        while(true) {
             try {
                 String portStr = JOptionPane.showInputDialog("What port does your server run on?");
-                port = Integer.parseInt(portStr);
 
+                // This happens when the user selects "Cancel"
+                if(portStr == null) {
+                    System.exit(0);
+                }
+
+                port = Integer.parseInt(portStr);
                 if(port < 1 || port > 65535) {
                     JOptionPane.showMessageDialog(null, "Wrong port! Choose one between 1 and 65535");
                 } else {
-                    ok = true;
+                    return port;
                 }
-
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "Type a valid, integer port, please! (between 1 and 65535)");
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "Type a valid port, please!");
+                return 0;
             }
         }
-
-        return port;
     }
 }
