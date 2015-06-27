@@ -8,6 +8,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
+import java.net.URI;
 import java.util.Scanner;
 
 public class Client {
@@ -35,10 +36,6 @@ public class Client {
             port = Integer.parseInt(args[1]);
         }
 
-        proceed(GrapplGlobal.DOMAIN, port, displayGui);
-    }
-
-    public static void proceed(final String ip, int port, final boolean displayGui) {
         if(displayGui) {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -52,29 +49,177 @@ public class Client {
                 e.printStackTrace();
             }
 
-            jFrame = new JFrame(GrapplGlobal.APP_NAME + " Client");
+
+            jFrame = new JFrame("Grappl Client");
+            // 300, 240
             jFrame.setSize(new Dimension(300, 240));
+
+            jFrame.setLocationRelativeTo(null);
             jFrame.setVisible(true);
             jFrame.setLayout(null);
             jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-            JButton jButton = new JButton("Close " + GrapplGlobal.APP_NAME + " Client");
-            jButton.addActionListener(new ActionListener() {
+            JLabel usernameLable = new JLabel("Username");
+            usernameLable.setBounds(5, 5, 250, 20);
+            jFrame.add(usernameLable);
+
+            final JTextField username = new JTextField("");
+            username.setBounds(5, 25, 250, 20);
+            jFrame.add(username);
+
+            final JLabel passwordLabel = new JLabel("Password");
+            passwordLabel.setBounds(5, 45, 250, 20);
+            jFrame.add(passwordLabel);
+
+            final JPasswordField jPasswordField = new JPasswordField("");
+            jPasswordField.setBounds(5, 65, 250, 20);
+            jFrame.add(jPasswordField);
+
+            JButton login = new JButton("Login");
+            login.setBounds(2, 100, 140, 40);
+            login.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    System.exit(0);
+                    DataInputStream dataInputStream = null;
+                    DataOutputStream dataOutputStream = null;
+
+                    try {
+                        Socket socket = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.AUTHENTICATION);
+                        dataInputStream = new DataInputStream(socket.getInputStream());
+                        dataOutputStream = new DataOutputStream(socket.getOutputStream());
+
+                        dataOutputStream.writeByte(0);
+
+                        PrintStream printStream = new PrintStream(dataOutputStream);
+//                        System.out.println(username.getText());
+//                        System.out.println(jPasswordField.getPassword());
+                        printStream.println(username.getText().toLowerCase());
+                        printStream.println(jPasswordField.getPassword());
+
+                        boolean success = dataInputStream.readBoolean();
+                        boolean alpha = dataInputStream.readBoolean();
+                        int port = dataInputStream.readInt();
+                        isAlphaTester = alpha;
+                        isLoggedIn = success;
+
+                        if(success) {
+                            System.out.println("Logged in as " + username.getText());
+                            System.out.println("Alpha tester: " + alpha);
+                            System.out.println("Static port: " + port);
+                            Client.username = username.getText();
+
+                            // options: nyc. sf. pac. lon. deu.
+                            String prefix = dataInputStream.readLine();
+
+                            String domain = prefix + "." + GrapplGlobal.DOMAIN;
+
+                            System.out.println(domain);
+
+                            int wX = jFrame.getX();
+                            int wY = jFrame.getY();
+
+                            jFrame.setVisible(false);
+                            jFrame = new JFrame(GrapplGlobal.APP_NAME + " Client ("+ Client.username + ")");
+                            // 300, 240
+                            jFrame.setSize(new Dimension(300, 240));
+                            jFrame.setLocation(wX, wY);
+
+                            jFrame.setVisible(true);
+                            jFrame.setLayout(null);
+                            jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+                            JButton jButton = new JButton("Close " + GrapplGlobal.APP_NAME + " Client");
+                            jButton.addActionListener(new ActionListener() {
+                                @Override
+                                public void actionPerformed(ActionEvent e) {
+                                    System.exit(0);
+                                }
+                            });
+                            jFrame.add(jButton);
+                            jButton.setBounds(0, 95, 280, 100);
+
+                            String ports = JOptionPane.showInputDialog("What port does your server run on?");
+                            run(true, domain, Integer.parseInt(ports));
+                        } else {
+                            System.out.println("Login failed!");
+                        }
+                    } catch (IOException ee) {
+                        ee.printStackTrace();
+                    }
                 }
             });
-            jFrame.add(jButton);
-            jButton.setBounds(0, 95, 280, 100);
+            jFrame.add(login);
+
+            JButton signup = new JButton("Sign up");
+            signup.setBounds(142, 100, 140, 40);
+            signup.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        Desktop.getDesktop().browse(URI.create("http://grappl.io/register"));
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+            });
+            jFrame.add(signup);
+
+            JButton beanonymous = new JButton("Be Anonymous");
+            //202
+            beanonymous.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    jFrame.setVisible(false);
+                    int wX = jFrame.getX();
+                    int wY = jFrame.getY();
+
+                    jFrame = new JFrame(GrapplGlobal.APP_NAME + " Client");
+                    // 300, 240
+                    jFrame.setSize(new Dimension(300, 240));
+                    jFrame.setLocation(wX, wY);
+
+                    jFrame.setVisible(true);
+                    jFrame.setLayout(null);
+                    jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+                    JButton jButton = new JButton("Close " + GrapplGlobal.APP_NAME + " Client");
+                    jButton.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            System.exit(0);
+                        }
+                    });
+                    jFrame.add(jButton);
+                    jButton.setBounds(0, 95, 280, 100);
+
+                    String ports = JOptionPane.showInputDialog("What port does your server run on?");
+                    run(true, GrapplGlobal.DOMAIN, Integer.parseInt(ports));
+                }
+            });
+            beanonymous.setBounds(2, 150, 192, 40);
+            jFrame.add(beanonymous);
+
+            JButton donate = new JButton("Donate");
+            donate.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        Desktop.getDesktop().browse(URI.create("http://grappl.io/donate"));
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+            });
+            donate.setBounds(201, 150, 75, 40);
+            jFrame.add(donate);
         }
 
-        if(displayGui) {
-            String ports = JOptionPane.showInputDialog("What port does your server run on?");
-            port = Integer.parseInt(ports);
-            run(true, ip, port);
-        }
+        jFrame.repaint();
 
+        proceed(GrapplGlobal.DOMAIN, port, displayGui);
+    }
+
+    public static void proceed(final String ip, int port, final boolean displayGui) {
         final int SERVICE_PORT = port;
         final String IP = ip;
 
@@ -141,7 +286,7 @@ public class Client {
                                 System.out.println("Static port: " + port);
                                 Client.username = username;
                             } else {
-                                System.out.println("Login failed!");
+                                JOptionPane.showMessageDialog(jFrame, "Login failed!");
                             }
                         }
 
@@ -183,19 +328,20 @@ public class Client {
         }).start();
     }
 
-    public static void run(final boolean displayGui, String ip, int port) {
+    public static void run(final boolean displayGui, final String ip, int port) {
             final int SERVICE_PORT = port;
 
+//        if(ip.substring(0, 1).equalsIgnoreCase(".")) { ip = ip.substring(1, ip.length()); }
             try {
             // Create socket listener
             final Socket messageSocket = new Socket(ip, GrapplGlobal.MESSAGE_PORT);
 
             final DataInputStream messageInputStream = new DataInputStream(messageSocket.getInputStream());
             final String s = messageInputStream.readLine();
-            System.out.println(GrapplGlobal.DOMAIN + ":" + s);
+            System.out.println(ip + ":" + s);
 
             if(displayGui) {
-                final JLabel jLabel = new JLabel("Global Address: " + GrapplGlobal.DOMAIN + ":" + s);
+                final JLabel jLabel = new JLabel("Public address: " + ip + ":" + s);
                 jLabel.setBounds(5, 5, 450, 20);
                 jFrame.add(jLabel);
 
@@ -237,7 +383,7 @@ public class Client {
                     DataOutputStream dataOutputStream = null;
 
                     try {
-                        heartBeat = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.HEARTBEAT);
+                        heartBeat = new Socket(ip, GrapplGlobal.HEARTBEAT);
                         dataOutputStream = new DataOutputStream(heartBeat.getOutputStream());
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -282,7 +428,8 @@ public class Client {
                             // This socket connects to the local server.
                             final Socket toLocal = new Socket("127.0.0.1", SERVICE_PORT);
                             // This socket connects to the grappl server, to transfer data from the computer to it.
-                            final Socket toRemote = new Socket(GrapplGlobal.DOMAIN, Integer.parseInt(s) + 1);
+                            System.out.println(ip);
+                            final Socket toRemote = new Socket(ip, Integer.parseInt(s) + 1);
 
                             // Start the local -> remote thread
                             final Thread localToRemote = new Thread(new Runnable() {
