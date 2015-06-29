@@ -359,6 +359,10 @@ public class Client {
                                         if(es.getMessage().equals("Socket closed")) {
                                             System.out.println("Remote client disconnected");
                                         } else {
+                                            try {
+                                                toLocal.close();
+                                                toRemote.close();
+                                            } catch (IOException e1) { }
                                             es.printStackTrace();
                                         }
                                     } catch (IOException e) {
@@ -366,9 +370,7 @@ public class Client {
                                         try {
                                             toLocal.close();
                                             toRemote.close();
-                                        } catch (IOException e1) {
-    //                                            e1.printStackTrace();
-                                        }
+                                        } catch (IOException e1) { }
                                     }
 
                                     try {

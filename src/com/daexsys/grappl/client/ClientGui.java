@@ -40,21 +40,21 @@ public class ClientGui extends JFrame {
         add(buttonClose);
 
         // Status labels
-        labelAddress = new JLabel();
+        labelAddress = new JLabel("Global Address: ...");
         labelAddress.setBounds(5, 5, 450, 20);
         add(labelAddress);
 
-        labelPort = new JLabel();
+        labelPort = new JLabel("Server on local port: ...");
         labelPort.setBounds(5, 25, 450, 20);
         add(labelPort);
-
-        labelStatus = new JLabel();
-        labelStatus.setBounds(5, 65, 450, 20);
-        add(labelStatus);
 
         labelClients = new JLabel();
         labelClients.setBounds(5, 45, 450, 20);
         add(labelClients);
+
+        labelStatus = new JLabel("Connecting...");
+        labelStatus.setBounds(5, 65, 450, 20);
+        add(labelStatus);
 
         setResizable(false);
     }
