@@ -14,8 +14,10 @@ public class Client {
     private LoginGui loginGUI;
     private int sent = 0;
     private int recv = 0;
-    private int port = 0;
+    private int servicePort = 0;
+    private int relayedPort = 0;
 
+    private String serviceDomain = GrapplGlobal.DOMAIN;
     private String username = "Anonymous";
     private boolean isAlphaTester = false;
     private boolean isLoggedIn = false;
@@ -35,10 +37,10 @@ public class Client {
                     if(port < 1 || port > 65535) {
                         throw new NumberFormatException();
                     } else {
-                        client.setPort(port);
+                        client.setServicePort(port);
                     }
                 } catch(NumberFormatException e) {
-                    System.out.println("Wrong port number! You must enter a valid server port number between 1 and 65535");
+                    System.out.println("Wrong servicePort number! You must enter a valid server servicePort number between 1 and 65535");
                     System.out.println("Example: java -jar GrappleClient.jar nogui 7777");
                     System.exit(0);
                 }
@@ -49,7 +51,7 @@ public class Client {
             client.guiInit();
         }
 
-        client.proceed(GrapplGlobal.DOMAIN);
+        client.proceed();
     }
 
     public void guiInit() {
@@ -59,39 +61,18 @@ public class Client {
         loginGUI.buttonLogin.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                DataInputStream dataInputStream;
-                DataOutputStream dataOutputStream;
                 username = loginGUI.inputUser.getText();
                 String ipass = loginGUI.inputPassword.getPassword()+"";
 
                 try {
-                    Socket socket = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.AUTHENTICATION);
-                    dataInputStream = new DataInputStream(socket.getInputStream());
-                    dataOutputStream = new DataOutputStream(socket.getOutputStream());
+                    relayedPort = login(username, ipass);
 
-                    dataOutputStream.writeByte(0);
-
-                    PrintStream printStream = new PrintStream(dataOutputStream);
-                    printStream.println(username.toLowerCase());
-                    printStream.println(ipass);
-
-                    boolean success = dataInputStream.readBoolean();
-                    boolean alpha = dataInputStream.readBoolean();
-                    int port = dataInputStream.readInt();
-                    isAlphaTester = alpha;
-                    isLoggedIn = success;
-
-                    if (success) {
+                    if (isLoggedIn) {
                         System.out.println("Logged in as " + username);
-                        System.out.println("Alpha tester: " + alpha);
-                        System.out.println("Static port: " + port);
+                        System.out.println("Alpha tester: " + isAlphaTester);
+                        System.out.println("Static port: " + relayedPort);
 
-                        // options: nyc. sf. pac. lon. deu.
-                        String prefix = dataInputStream.readLine();
-
-                        String domain = prefix + "." + GrapplGlobal.DOMAIN;
-
-                        System.out.println(domain);
+                        System.out.println(serviceDomain);
 
                         int wX = clientGUI.getX();
                         int wY = clientGUI.getY();
@@ -100,10 +81,10 @@ public class Client {
                         clientGUI.setLocation(wX, wY);
                         clientGUI.setVisible(true);
 
-                        setPort(clientGUI.askPort());
-                        init(domain);
+                        setServicePort(clientGUI.askPort());
+                        init();
                     } else {
-                        System.out.println("Login failed!");
+                        JOptionPane.showMessageDialog(loginGUI, "Login failed!");
                     }
                 } catch (IOException ee) {
                     ee.printStackTrace();
@@ -122,26 +103,24 @@ public class Client {
                 clientGUI.setLocation(wX, wY);
                 clientGUI.setVisible(true);
 
-                setPort(clientGUI.askPort());
-                init(GrapplGlobal.DOMAIN);
+                setServicePort(clientGUI.askPort());
+                init();
             }
         });
 
         loginGUI.setVisible(true);
     }
 
-    public void proceed(final String ip) {
-        final int SERVICE_PORT = port;
+    public void proceed() {
+        final int SERVICE_PORT = servicePort;
 
         new Thread(new Runnable() {
             @Override
             public void run() {
-                DataInputStream dataInputStream = null;
                 DataOutputStream dataOutputStream = null;
 
                 try {
-                    Socket socket = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.AUTHENTICATION);
-                    dataInputStream = new DataInputStream(socket.getInputStream());
+                    Socket socket = new Socket(serviceDomain, GrapplGlobal.AUTHENTICATION);
                     dataOutputStream = new DataOutputStream(socket.getOutputStream());
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -178,36 +157,20 @@ public class Client {
                             String username = spl[1];
                             String password = spl[2];
 
-                            dataOutputStream.writeByte(0);
-
-                            PrintStream printStream = new PrintStream(dataOutputStream);
-                            printStream.println(username);
-                            printStream.println(password);
-
-                            isLoggedIn = dataInputStream.readBoolean();
-                            isAlphaTester = dataInputStream.readBoolean();
-                            int port = dataInputStream.readInt();
+                            int port = login(username, password);
 
                             if(isLoggedIn) {
                                 System.out.println("Logged in as " + username);
                                 System.out.println("Alpha tester: " + isAlphaTester);
-                                System.out.println("Static port: " + port);
+                                System.out.println("Static servicePort: " + port);
                             } else {
-                                if(clientGUI != null) {
-                                    JOptionPane.showMessageDialog(clientGUI, "Login failed!");
-                                } else {
-                                    System.out.println("Login failed!");
-                                }
-
+                                System.out.println("Login failed!");
                             }
                         }
 
                         else if(command.equals("whoami")) {
-                            if(isLoggedIn) {
-                                System.out.println(username);
-                            } else {
-                                System.out.println("You aren't logged in, so you are anonymous.");
-                            }
+                            // If not logged in, it prints Anonymous anyway (defined on class variable).
+                            System.out.println(username);
                         }
 
                         else if(command.equals("setport")) {
@@ -215,7 +178,7 @@ public class Client {
                                 if (isAlphaTester) {
                                     dataOutputStream.writeByte(2);
                                     dataOutputStream.writeInt(Integer.parseInt(spl[1]));
-                                    System.out.println("Your port was set to: " + Integer.parseInt(spl[1]));
+                                    System.out.println("Your servicePort was set to: " + Integer.parseInt(spl[1]));
                                 } else {
                                     System.out.println("You are not an alpha tester, so you can't set static ports.");
                                 }
@@ -226,8 +189,8 @@ public class Client {
 
                         else if (command.equals("init")) {
                             System.out.println("Starting...");
-                            port = SERVICE_PORT;
-                            init(ip);
+                            servicePort = SERVICE_PORT;
+                            init();
                         }
 
                         else if (line.equalsIgnoreCase("quit")) {
@@ -241,22 +204,22 @@ public class Client {
         }).start();
     }
 
-    public void init(final String ip) {
-            final int SERVICE_PORT = port;
+    public void init() {
+            final int SERVICE_PORT = servicePort;
 
 //        if(ip.substring(0, 1).equalsIgnoreCase(".")) { ip = ip.substring(1, ip.length()); }
         try {
 
             // Create socket listener
-            final Socket messageSocket = new Socket(ip, GrapplGlobal.MESSAGE_PORT);
+            final Socket messageSocket = new Socket(serviceDomain, GrapplGlobal.MESSAGE_PORT);
 
             final BufferedReader messageInputStream = new BufferedReader(new InputStreamReader(messageSocket.getInputStream()));
             final String s = messageInputStream.readLine();
-            System.out.println(ip + ":" + s);
+            System.out.println(serviceDomain + ":" + s);
 
             if(clientGUI != null) {
                 clientGUI.labelAddress.setText("Global Address: " + GrapplGlobal.DOMAIN + ":" + s);
-                clientGUI.labelPort.setText("Server on local port: " + SERVICE_PORT);
+                clientGUI.labelPort.setText("Server on local servicePort: " + SERVICE_PORT);
                 clientGUI.labelStatus.setText("Waiting for data");
 
                 clientGUI.repaint();
@@ -286,7 +249,7 @@ public class Client {
                     DataOutputStream dataOutputStream = null;
 
                     try {
-                        heartBeat = new Socket(ip, GrapplGlobal.HEARTBEAT);
+                        heartBeat = new Socket(serviceDomain, GrapplGlobal.HEARTBEAT);
                         dataOutputStream = new DataOutputStream(heartBeat.getOutputStream());
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -328,8 +291,8 @@ public class Client {
                             // This socket connects to the local server.
                             final Socket toLocal = new Socket("127.0.0.1", SERVICE_PORT);
                             // This socket connects to the grappl server, to transfer data from the computer to it.
-                            System.out.println(ip);
-                            final Socket toRemote = new Socket(ip, Integer.parseInt(s) + 1);
+                            System.out.println(serviceDomain);
+                            final Socket toRemote = new Socket(serviceDomain, Integer.parseInt(s) + 1);
 
                             // Start the local -> remote thread
                             final Thread localToRemote = new Thread(new Runnable() {
@@ -409,11 +372,44 @@ public class Client {
         }
     }
 
-    public static void updateConnections() {
+    /**
+     * Login to the system.
+     * @param user The session user
+     * @param pass The session password
+     * @return On successful login it returns the servicePort relayed to on remote system. Else, returns 0.
+     * @throws IOException
+     */
+    public int login(String user, String pass) throws IOException {
+        DataOutputStream outputStream;
+        DataInputStream inputStream;
 
+        Socket socket = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.AUTHENTICATION);
+        inputStream = new DataInputStream(socket.getInputStream());
+        outputStream = new DataOutputStream(socket.getOutputStream());
+
+        outputStream.writeByte(0);
+
+        PrintStream printStream = new PrintStream(outputStream);
+        printStream.println(user);
+        printStream.println(pass);
+
+        isLoggedIn = inputStream.readBoolean();
+        isAlphaTester = inputStream.readBoolean();
+
+        int staticPort = inputStream.readInt();
+
+        if(isLoggedIn) {
+            // options: nyc. sf. pac. lon. deu.
+            username = user;
+            String prefix = inputStream.readLine();
+            serviceDomain = prefix + "." + GrapplGlobal.DOMAIN;
+            return staticPort;
+        } else {
+            return 0;
+        }
     }
 
-    public void setPort(int port) {
-        this.port = port;
+    public void setServicePort(int servicePort) {
+        this.servicePort = servicePort;
     }
 }
