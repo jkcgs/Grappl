@@ -62,7 +62,12 @@ public class Client {
             @Override
             public void actionPerformed(ActionEvent e) {
                 username = loginGUI.inputUser.getText();
-                String ipass = loginGUI.inputPassword.getPassword()+"";
+                String ipass = new String(loginGUI.inputPassword.getPassword());
+
+                if(username.isEmpty()) {
+                    JOptionPane.showMessageDialog(loginGUI, "Please type the username!");
+                    return;
+                }
 
                 try {
                     relayedPort = login(username, ipass);
@@ -112,8 +117,6 @@ public class Client {
     }
 
     public void proceed() {
-        final int SERVICE_PORT = servicePort;
-
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -122,8 +125,13 @@ public class Client {
                 try {
                     Socket socket = new Socket(serviceDomain, GrapplGlobal.AUTHENTICATION);
                     dataOutputStream = new DataOutputStream(socket.getOutputStream());
-                } catch (IOException e) {
+                } catch (Exception e) {
+                    if(clientGUI != null) {
+                        JOptionPane.showMessageDialog(clientGUI, "Error detected trying to connect to the server! Closing...");
+                    }
+
                     e.printStackTrace();
+                    System.exit(0);
                 }
 
                 System.out.println("Grappl command line");
@@ -189,7 +197,6 @@ public class Client {
 
                         else if (command.equals("init")) {
                             System.out.println("Starting...");
-                            servicePort = SERVICE_PORT;
                             init();
                         }
 
@@ -205,7 +212,7 @@ public class Client {
     }
 
     public void init() {
-            final int SERVICE_PORT = servicePort;
+        final int SERVICE_PORT = servicePort;
 
 //        if(ip.substring(0, 1).equalsIgnoreCase(".")) { ip = ip.substring(1, ip.length()); }
         try {
@@ -219,7 +226,7 @@ public class Client {
 
             if(clientGUI != null) {
                 clientGUI.labelAddress.setText("Global Address: " + GrapplGlobal.DOMAIN + ":" + s);
-                clientGUI.labelPort.setText("Server on local servicePort: " + SERVICE_PORT);
+                clientGUI.labelPort.setText("Server on local port: " + SERVICE_PORT);
                 clientGUI.labelStatus.setText("Waiting for data");
 
                 clientGUI.repaint();
