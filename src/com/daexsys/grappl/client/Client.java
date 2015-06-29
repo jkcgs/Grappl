@@ -62,6 +62,7 @@ public class Client {
                 DataInputStream dataInputStream;
                 DataOutputStream dataOutputStream;
                 username = loginGUI.inputUser.getText();
+                String ipass = loginGUI.inputPassword.getPassword()+"";
 
                 try {
                     Socket socket = new Socket(GrapplGlobal.DOMAIN, GrapplGlobal.AUTHENTICATION);
@@ -72,6 +73,7 @@ public class Client {
 
                     PrintStream printStream = new PrintStream(dataOutputStream);
                     printStream.println(username.toLowerCase());
+                    printStream.println(ipass);
 
                     boolean success = dataInputStream.readBoolean();
                     boolean alpha = dataInputStream.readBoolean();
