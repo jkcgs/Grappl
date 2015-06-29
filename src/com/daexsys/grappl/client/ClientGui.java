@@ -25,8 +25,8 @@ public class ClientGui extends JFrame {
         }
 
         setSize(new Dimension(300, 240));
-        setVisible(true);
         setLayout(null);
+        setLocationRelativeTo(null);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         buttonClose = new JButton("Close " + GrapplGlobal.APP_NAME + " Client");
@@ -55,6 +55,8 @@ public class ClientGui extends JFrame {
         labelClients = new JLabel();
         labelClients.setBounds(5, 45, 450, 20);
         add(labelClients);
+
+        setResizable(false);
     }
 
     public int askPort() {
